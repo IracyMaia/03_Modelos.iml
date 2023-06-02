@@ -1,136 +1,136 @@
-################################
-# Install                      #
-################################
-# Codes for installing package from CRAN:
-
-
-install.packages("devtools")
-install.packages("tidyverse")
-install.packages("readr")
-install.packages("countrycode")
-install.packages("rangeBuilder")
-install.packages("sf")
-install.packages("terra")
-install.packages("rworldmap")
-install.packages("maps")
-install.packages("ridigbio")
-install.packages("rgbif")
-install.packages("BIEN")
-install.packages("rinat")
-
-# Codes for installing package from GitHub:
-devtools::install_github("idiv-biodiversity/LCVP")
-devtools::install_github("idiv-biodiversity/lcvplants")
-install.packages("rnaturalearthhires", repos = "http://packages.ropensci.org", type = "source")
-devtools::install_github("ropensci/rnaturalearthdata")
-devtools::install_github("ropensci/rgnparser")
-rgnparser::install_gnparser()
-# In case of trouble you can install gnparser see the help at  https://github.com/gnames/gnparser#install-with-homebrew
-
-devtools::install_github("brunobrr/bdc")
-devtools::install_github("liibre/rocc")
-devtools::install_github("sjevelazco/flexsdm")
-devtools::install_github("andrefaa/ENMTML")
-
-
-
-
-## %######################################################%##
-#                                                          #
-####                   3-Pre-modeling                   ####
-#                                                          #
-## %######################################################%##
-{
-  require(dplyr)
-  require(terra)
-  require(flexsdm)
-  require(here)
-  require(progress)
-  require(ape)
-}
-getwd()
-
-## %######################################################%##
-#                                                          #
-####             Create directory structure             ####
-#                                                          #
-## %######################################################%##
-dir <- flexsdm::sdm_directory(
-  main_dir = file.path(getwd(), "1-SDM"),
-  calibration_area = TRUE,
-  algorithm = c("gam", "gau", "gbm", "glm", "max", "net", "raf", "svm", "mean"), #mean es el ensamble for bees
-  ensemble = NULL,
-  threshold = FALSE,
-  return_vector = TRUE
-)
-# dir[1] %>% fs::dir_tree(., recurse = TRUE)
-dir %>% head()
-
-
-
-# Occ database
-unfilt_occ <- data.table::fread(here("occ_final_unfiltered.txt")) %>% 
-  dplyr::tibble()
-names(unfilt_occ)
-unfilt_occ <- unfilt_occ %>% dplyr::select(id, species, x, y)
-
-
-## %######################################################%##
-#                                                          #
-####                  Calibration area                  ####
-#                                                          #
-## %######################################################%##
-here()
-
-# Ecoregion
-eco <- terra::vect("./Variables_US_to_Patagonia_5km/Ecoregions/Ecoregions.gpkg")
-
-# Process species
-sp <- unfilt_occ$species %>%
-  unique() %>%
-  sort()
-i=1
-for (i in 1:length(sp)) {
-  x2 <-
-    flexsdm::calib_area(
-      data = unfilt_occ[unfilt_occ$species == sp[i], ],
-      x = "x",
-      y = "y",
-      method = c("mask", eco, "ECO_ID")
-    )
-  x2$ECO_NAME <- NULL
-  terra::writeVector(x2, 
-                     file.path(dir[6], paste0(sp[i], ".gpkg")), overwrite = TRUE)
-}
-rm(unfilt_occ)
-
-
-##%######################################################%##
-#                                                          #
-####               Evaluar la correlacion               ####
-####          entre las variables ambientales           ####
-#                                                          #
-##%######################################################%##
-require(ggplot2)
-library(corrplot)
-
-env_variables <- list.files("./Variav/", pattern = ".tif", full.names = TRUE) %>% 
-  terra::rast() # una variable ambiental
-names(env_variables)
-corr <- correct_colinvar(env_layer = env_variables, method = c('pearson', th='0.7'))
-mtrx <- corr$cor_table 
-mtrx[mtrx<0.7] <- 0
-corrplot(mtrx, type="upper", order="hclust")
-  # ggsave(filename = "./Variablesusadas/correlationplot.png")
-
-# filt escrever o vector com os nomes das variaveis ambientais selecionadas
-filt <- c("silt_0-5cm", "hurs_mean", "bio17", "bio18",  "cmi_mean", "bio10", "bio13", "bio14", "bio8", "bio6", "bio11", "bio4", "bio3", "bio7", "bio19", "bio16", "bio1")
-filt_m <- !colnames(mtrx)%in%filt
-corrplot(mtrx[filt_m,filt_m], type="upper", order="hclust")
-env_variables <- env_variables[[!names(env_variables)%in%filt]]
-names(env_variables)
-
-dir.create("./Variaveisusadas_filtradas")
+# ################################
+# # Install                      #
+# ################################
+# # Codes for installing package from CRAN:
+#
+#
+# install.packages("devtools")
+# install.packages("tidyverse")
+# install.packages("readr")
+# install.packages("countrycode")
+# install.packages("rangeBuilder")
+# install.packages("sf")
+# install.packages("terra")
+# install.packages("rworldmap")
+# install.packages("maps")
+# install.packages("ridigbio")
+# install.packages("rgbif")
+# install.packages("BIEN")
+# install.packages("rinat")
+#
+# # Codes for installing package from GitHub:
+# devtools::install_github("idiv-biodiversity/LCVP")
+# devtools::install_github("idiv-biodiversity/lcvplants")
+# install.packages("rnaturalearthhires", repos = "http://packages.ropensci.org", type = "source")
+# devtools::install_github("ropensci/rnaturalearthdata")
+# devtools::install_github("ropensci/rgnparser")
+# rgnparser::install_gnparser()
+# # In case of trouble you can install gnparser see the help at  https://github.com/gnames/gnparser#install-with-homebrew
+#
+# devtools::install_github("brunobrr/bdc")
+# devtools::install_github("liibre/rocc")
+# devtools::install_github("sjevelazco/flexsdm")
+# devtools::install_github("andrefaa/ENMTML")
+#
+#
+#
+#
+# ## %######################################################%##
+# #                                                          #
+# ####                   3-Pre-modeling                   ####
+# #                                                          #
+# ## %######################################################%##
+# {
+#   require(dplyr)
+#   require(terra)
+#   require(flexsdm)
+#   require(here)
+#   require(progress)
+#   require(ape)
+# }
+# getwd()
+#
+# ## %######################################################%##
+# #                                                          #
+# ####             Create directory structure             ####
+# #                                                          #
+# ## %######################################################%##
+# dir <- flexsdm::sdm_directory(
+#   main_dir = file.path(getwd(), "1-SDM"),
+#   calibration_area = TRUE,
+#   algorithm = c("gam", "gau", "gbm", "glm", "max", "net", "raf", "svm", "mean"), #mean es el ensamble for bees
+#   ensemble = NULL,
+#   threshold = FALSE,
+#   return_vector = TRUE
+# )
+# # dir[1] %>% fs::dir_tree(., recurse = TRUE)
+# dir %>% head()
+#
+#
+#
+# # Occ database
+# unfilt_occ <- data.table::fread(here("occ_final_unfiltered.txt")) %>%
+#   dplyr::tibble()
+# names(unfilt_occ)
+# unfilt_occ <- unfilt_occ %>% dplyr::select(id, species, x, y)
+#
+#
+# ## %######################################################%##
+# #                                                          #
+# ####                  Calibration area                  ####
+# #                                                          #
+# ## %######################################################%##
+# here()
+#
+# # Ecoregion
+# eco <- terra::vect("./Variables_US_to_Patagonia_5km/Ecoregions/Ecoregions.gpkg")
+#
+# # Process species
+# sp <- unfilt_occ$species %>%
+#   unique() %>%
+#   sort()
+# i=1
+# for (i in 1:length(sp)) {
+#   x2 <-
+#     flexsdm::calib_area(
+#       data = unfilt_occ[unfilt_occ$species == sp[i], ],
+#       x = "x",
+#       y = "y",
+#       method = c("mask", eco, "ECO_ID")
+#     )
+#   x2$ECO_NAME <- NULL
+#   terra::writeVector(x2,
+#                      file.path(dir[6], paste0(sp[i], ".gpkg")), overwrite = TRUE)
+# }
+# rm(unfilt_occ)
+#
+#
+# ##%######################################################%##
+# #                                                          #
+# ####               Evaluar la correlacion               ####
+# ####          entre las variables ambientales           ####
+# #                                                          #
+# ##%######################################################%##
+# require(ggplot2)
+# # library(corrplot)
+#
+# env_variables <- list.files("./Variav/", pattern = ".tif", full.names = TRUE) %>%
+#   terra::rast() # una variable ambiental
+# names(env_variables)
+# corr <- correct_colinvar(env_layer = env_variables, method = c('pearson', th='0.7'))
+# mtrx <- corr$cor_table
+# mtrx[mtrx<0.7] <- 0
+# corrplot(mtrx, type="upper", order="hclust")
+#   # ggsave(filename = "./Variablesusadas/correlationplot.png")
+#
+# # filt escrever o vector com os nomes das variaveis ambientais selecionadas
+# filt <- c("silt_0-5cm", "hurs_mean", "bio17", "bio18",  "cmi_mean", "bio10", "bio13", "bio14", "bio8", "bio6", "bio11", "bio4", "bio3", "bio7", "bio19", "bio16", "bio1")
+# filt_m <- !colnames(mtrx)%in%filt
+# corrplot(mtrx[filt_m,filt_m], type="upper", order="hclust")
+# env_variables <- env_variables[[!names(env_variables)%in%filt]]
+# names(env_variables)
+#
+# dir.create("./Variaveisusadas_filtradas")
 # terra::writeRaster(env_variables, file.path("./Variaveisusadas_filtradas", paste0(names(env_variables), ".tif")))
 
 
@@ -140,96 +140,96 @@ dir.create("./Variaveisusadas_filtradas")
 #                                                          #
 ##%######################################################%##
 # Registros de especies no filtradas
-db0 <- data.table::fread(here("occ_final_unfiltered.txt")) %>% 
-  dplyr::tibble()
-db0 <- db0 %>% dplyr::select(id = id, species = species, x, y)
-
-nocc <- db0 %>% dplyr::group_by(species) %>% 
-  dplyr::count() %>% 
-  dplyr::arrange(species)
-nocc
-nocc <- nocc %>% mutate(need_bias_corr = FALSE)
-nocc[nocc$n > 50, 3] <- TRUE
-
-sp <- nocc %>% dplyr::filter(need_bias_corr==T) %>% pull(species)
-
-env <- list.files("./Variaveisusadas_filtradas/", 
-                  pattern = ".tif", full.names = TRUE) %>% 
-  terra::rast() # una variable ambientales
-# Eliminamos aquellas especificas de especies fosoriales y aquaticas
-env <- env[[!names(env)%in%c("cti", "clay_0-5cm", "sand_0-5cm")]]
-names(env)
-
-list_filt_occ <- list()
-for(i in 1:length(sp)){
-  message(i/length(sp))
-  bin_4 <- 
-    flexsdm::occfilt_env(
-      data = db0[db0$species==sp[i],],
-      x = "x",
-      y = "y",
-      id = "id",
-      env_layer = env,
-      nbins = 4
-    )
-  bin_6 <- 
-    flexsdm::occfilt_env(
-      data = db0[db0$species==sp[i],],
-      x = "x",
-      y = "y",
-      id = "id",
-      env_layer = env,
-      nbins = 6
-    )
-  bin_8 <- 
-    flexsdm::occfilt_env(
-      data = db0[db0$species==sp[i],],
-      x = "x",
-      y = "y",
-      id = "id",
-      env_layer = env,
-      nbins = 8
-    )
-  bin_10 <- 
-    flexsdm::occfilt_env(
-      data = db0[db0$species==sp[i],],
-      x = "x",
-      y = "y",
-      id = "id",
-      env_layer = env,
-      nbins = 10
-    )
-  
-  # Calculo de autocorrelacion espacial
-  list_bin <- list(bin_4, bin_6, bin_8, bin_10)
-  names(list_bin) <- c('bin_4', 'bin_6', 'bin_8', 'bin_10')
-  imoran <- list()
-  for(ii in 1:4){
-    coord <- list_bin[[ii]] %>% dplyr::select(x, y)
-    data <- data.frame(terra::extract(env, coord))[-1]
-    distm <- dist(coord)
-    distm <- as.matrix(distm)
-    distm <- 1/distm
-    diag(distm) <- 0
-    try(imoran[[ii]] <-
-          apply(data, 2, function(x)
-            ape::Moran.I(x, distm, na.rm = T)[c(1, 4)] %>% unlist) %>% data.frame() %>% as_tibble()
-    )
-    try(imoran[[ii]] <- imoran[[ii]][1,])
-    try(imoran[[ii]]$mean_bin <- apply(imoran[[ii]], 1, mean))
-    imoran[[ii]]$nrecords <- nrow(coord)
-  }
-  names(imoran) <- c('bin_4', 'bin_6', 'bin_8', 'bin_10')
-  imoran <- bind_rows(imoran, .id="nbins")
-  # Seleccion 
-  bin_selected <- imoran %>%
-    filter(mean_bin <= mean(mean_bin)) %>%
-    filter(nrecords == max(nrecords)) %>%
-    pull("nbins")
-  bin_selected <- bin_selected[1]
-  # imoran <- data.frame(species=sp[i], imoran)
-  list_filt_occ[[i]] <- list_bin[[bin_selected]] %>% mutate(species=sp[i])
-}
+# db0 <- data.table::fread(here("occ_final_unfiltered.txt")) %>%
+#   dplyr::tibble()
+# db0 <- db0 %>% dplyr::select(id = id, species = species, x, y)
+#
+# nocc <- db0 %>% dplyr::group_by(species) %>%
+#   dplyr::count() %>%
+#   dplyr::arrange(species)
+# nocc
+# nocc <- nocc %>% mutate(need_bias_corr = FALSE)
+# nocc[nocc$n > 50, 3] <- TRUE
+#
+# sp <- nocc %>% dplyr::filter(need_bias_corr==T) %>% pull(species)
+#
+# env <- list.files("./Variaveisusadas_filtradas/",
+#                   pattern = ".tif", full.names = TRUE) %>%
+#   terra::rast() # una variable ambientales
+# # Eliminamos aquellas especificas de especies fosoriales y aquaticas
+# env <- env[[!names(env)%in%c("cti", "clay_0-5cm", "sand_0-5cm")]]
+# names(env)
+#
+# list_filt_occ <- list()
+# for(i in 1:length(sp)){
+#   message(i/length(sp))
+#   bin_4 <-
+#     flexsdm::occfilt_env(
+#       data = db0[db0$species==sp[i],],
+#       x = "x",
+#       y = "y",
+#       id = "id",
+#       env_layer = env,
+#       nbins = 4
+#     )
+#   bin_6 <-
+#     flexsdm::occfilt_env(
+#       data = db0[db0$species==sp[i],],
+#       x = "x",
+#       y = "y",
+#       id = "id",
+#       env_layer = env,
+#       nbins = 6
+#     )
+#   bin_8 <-
+#     flexsdm::occfilt_env(
+#       data = db0[db0$species==sp[i],],
+#       x = "x",
+#       y = "y",
+#       id = "id",
+#       env_layer = env,
+#       nbins = 8
+#     )
+#   bin_10 <-
+#     flexsdm::occfilt_env(
+#       data = db0[db0$species==sp[i],],
+#       x = "x",
+#       y = "y",
+#       id = "id",
+#       env_layer = env,
+#       nbins = 10
+#     )
+#
+#   # Calculo de autocorrelacion espacial
+#   list_bin <- list(bin_4, bin_6, bin_8, bin_10)
+#   names(list_bin) <- c('bin_4', 'bin_6', 'bin_8', 'bin_10')
+#   imoran <- list()
+#   for(ii in 1:4){
+#     coord <- list_bin[[ii]] %>% dplyr::select(x, y)
+#     data <- data.frame(terra::extract(env, coord))[-1]
+#     distm <- dist(coord)
+#     distm <- as.matrix(distm)
+#     distm <- 1/distm
+#     diag(distm) <- 0
+#     try(imoran[[ii]] <-
+#           apply(data, 2, function(x)
+#             ape::Moran.I(x, distm, na.rm = T)[c(1, 4)] %>% unlist) %>% data.frame() %>% as_tibble()
+#     )
+#     try(imoran[[ii]] <- imoran[[ii]][1,])
+#     try(imoran[[ii]]$mean_bin <- apply(imoran[[ii]], 1, mean))
+#     imoran[[ii]]$nrecords <- nrow(coord)
+#   }
+#   names(imoran) <- c('bin_4', 'bin_6', 'bin_8', 'bin_10')
+#   imoran <- bind_rows(imoran, .id="nbins")
+#   # Seleccion
+#   bin_selected <- imoran %>%
+#     filter(mean_bin <= mean(mean_bin)) %>%
+#     filter(nrecords == max(nrecords)) %>%
+#     pull("nbins")
+#   bin_selected <- bin_selected[1]
+#   # imoran <- data.frame(species=sp[i], imoran)
+#   list_filt_occ[[i]] <- list_bin[[bin_selected]] %>% mutate(species=sp[i])
+# }
 
 # dind data.frames
 list_filt_occ_final <- bind_rows(list_filt_occ)
@@ -239,7 +239,7 @@ db1 <- db0 %>% filter(!species%in%sp)
 filtr <- env$elevation
 filtr[!is.na(filtr)] <- as.data.frame(filtr, cells = T)[,"cell"]
 names(filtr) <- "cell"
-flexsdm::sdm_extract(db1)
+# flexsdm::sdm_extract(db1)
 
 db1$cell <- terra::extract(filtr, db1 %>% select(x, y))[,"cell"]
 db1 <- db1 %>% 
@@ -249,7 +249,8 @@ db1 <- db1 %>%
   select(-cell)
 
 filt_occ <- bind_rows(db1, list_filt_occ_final)
-# readr::write_tsv(filt_occ, "occurrences_cleaned_final_FILTERED.txt") RESULTADO FINAL, txt con la lista completa de <50 no filtrada y >50 filtrada. 
+# readr::write_tsv(filt_occ, "occurrences_cleaned_final_FILTERED.txt")
+# RESULTADO FINAL, txt con la lista completa de <50 no filtrada y >50 filtrada.
 
 # seleccionar especies con >=5 registros 
 occ <- readr::read_tsv(here("occurrences_cleaned_final_FILTERED.txt"))
